@@ -105,7 +105,7 @@ OPTIONS
         Restrict search to visible files, those with names that  do  not
         start with "." (in the shell tradition).  Default is true.
 
-    agcdiknoprstvCDIKNOPRSTV
+    acdiknoprstvCDIKNOPRSTVg
         The  Go  token  class  flags have an upper case negative form to
         disable the indicated class.  Used with  "a"  for  "all",  "aCS"
         means "search All tokens except Comments and Strings."  Flag "g"
@@ -139,8 +139,6 @@ SEE ALSO
 func main() {
 	// parse command line before configuring logging (to allow "-log xyz.txt")
 	flag.Usage = func() {
-		// fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
-		// flag.PrintDefaults()
 		fmt.Fprintf(flag.CommandLine.Output(), "\n%s", usage)
 	}
 	flag.Parse()
@@ -175,7 +173,8 @@ func main() {
 	}
 
 	if flag.NArg() < 2 {
-		fmt.Fprintf(os.Stderr, "usage: gg [flags] tokens regexp [file ...]\n")
+		fmt.Fprintf(os.Stderr, "usage: gg [flags] acdiknoprstvg regexp [file ...]\n")
+		fmt.Fprintf(os.Stderr, "    try gg -help for more\n")
 		os.Exit(1)
 	}
 
