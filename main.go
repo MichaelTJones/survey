@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"time"
 )
 
 var flagCPUs = flag.Int("cpu", 0, "number of CPUs to use (0 for all)")
@@ -18,9 +19,9 @@ var flagRecursive = flag.Bool("r", false, "grep directories recursively")
 var flagVisible = flag.Bool("visible", true, `limit grep to visible files (skip ".hidden.go")`)
 
 // grep-compatibility flags
-var flagFileName = flag.Bool("h", false, "disply file name for each match")
+var flagActLikeGrep = flag.Bool("g", false, "act like grep")
+var flagFileName = flag.Bool("h", false, `disply file name ("header") for each match`)
 var flagLineNumber = flag.Bool("n", false, "disply line number for each match")
-
 var usage = `NAME
      gg − grep Go‐language source code
 
@@ -172,6 +173,13 @@ func main() {
 		}
 	}
 
+	// bonus feature
+	// If you make a symbolic link to the executable or otherwise rename it from "gg" then it
+	// will automatically run in "be like grep" mode.
+	if os.Args[0] != "gg" {
+		*flagActLikeGrep = true // if user's made a symlink or renamed, become grep
+	}
+
 	if flag.NArg() < 2 {
 		fmt.Fprintf(os.Stderr, "usage: gg [flags] acdiknoprstvg regexp [file ...]\n")
 		fmt.Fprintf(os.Stderr, "    try gg -help for more\n")
@@ -183,5 +191,14 @@ func main() {
 	}
 
 	// perform actual work
+	start := time.Now()
 	doScan()
+	elapsed := time.Since(start).Seconds()
+	user, system, _ := getResourceUsage()
+	printf("performance")
+	printf("  %10.6f seconds elapsed\n", elapsed)
+	if elapsed > 0 {
+		printf("  %3d worker%s (parallel speedup = %.2f x)\n",
+			*flagCPUs, plural(*flagCPUs, ""), (user+system)/elapsed)
+	}
 }
