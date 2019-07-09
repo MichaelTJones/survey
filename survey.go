@@ -529,7 +529,7 @@ func (s *Survey) survey(name string, source []byte) {
 	s.extensions[filepath.Ext(newName)]++
 	// }
 
-	lexer := &lex.Lexer{Input: string(source), Mode: lex.ScanGo | lex.SkipSpace}
+	lexer := &lex.Lexer{Input: source, Mode: lex.ScanGo | lex.SkipSpace}
 	var c [256]int // used to count operator characters to detect imbalanced () {} []
 	badChars := ""
 	expectPackageName := false
@@ -540,11 +540,11 @@ func (s *Survey) survey(name string, source []byte) {
 
 		// go mini-parser: expect package name after "package" keyword
 		if expectPackageName && tok == lex.Identifier {
-			s.packages[text]++
+			s.packages[string(text)]++
 			expectPackageName = false
 			continue
 		}
-		if tok == lex.Keyword && text == "package" {
+		if tok == lex.Keyword && bytes.Compare(text, []byte("package")) == 0 {
 			expectPackageName = true // set expectations
 		}
 
@@ -554,17 +554,17 @@ func (s *Survey) survey(name string, source []byte) {
 		case lex.String:
 			s.countStrings[lexer.Subtype]++
 		case lex.Operator:
-			s.operators[text]++
-			c[byte(text[0])]++ // count () [] {} (and every other single character)
+			s.operators[string(text)]++
+			c[text[0]]++ // count () [] {} (and every other single character)
 		case lex.Rune:
-			s.runes[text]++
+			s.runes[string(text)]++
 		case lex.Identifier:
 			s.countIdentifiers[lexer.Subtype]++ // ASCII-only or Unicode
 			switch lexer.Subtype {
 			case lex.ASCII:
-				s.ascii[text]++
+				s.ascii[string(text)]++
 			case lex.Unicode:
-				s.unicode[text]++
+				s.unicode[string(text)]++
 			}
 		case lex.Number:
 			// note: safe because lex.Octal means len(text) >= 2 ("00"..."07" are the shortest)
@@ -574,13 +574,13 @@ func (s *Survey) survey(name string, source []byte) {
 				s.countBases[lexer.Subtype]++
 			}
 		case lex.Keyword:
-			s.keywords[text]++
+			s.keywords[string(text)]++
 		case lex.Type:
-			s.types[text]++
+			s.types[string(text)]++
 		case lex.Other:
-			s.others[text]++
+			s.others[string(text)]++
 		case lex.Character:
-			badChars += text // only happens if go code won't compile because junk characters in file
+			badChars += string(text) // only happens if go code won't compile because junk characters in file
 		}
 	}
 

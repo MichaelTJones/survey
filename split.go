@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -99,32 +100,32 @@ func doSplit() {
 	}
 	defer file.Close()
 
-	bytes, err := ioutil.ReadAll(file) // the Go Corpus is 752 MB
+	data, err := ioutil.ReadAll(file) // the Go Corpus is 752 MB
 	if err != nil {
 		println(err)
 		return
 	}
-	source := string(bytes)
-	printf("  %d byte%s, file %q", len(source), plural(len(source), ""), filename)
+	// source := string(bytes)
+	printf("  %d byte%s, file %q", len(data), plural(len(data), ""), filename)
 
 	var group []string
 	var groupBytes, groupCount, totalBytes, packageCount, bodyStart int
 	suffixStart := -1
 
-	lexer := &lex.Lexer{Input: source, Mode: lex.ScanGo} // skip no Go token, not even whitespace
+	lexer := &lex.Lexer{Input: data, Mode: lex.ScanGo} // skip no Go token, not even whitespace
 	for tok, text := lexer.Scan(); tok != lex.EOF; tok, text = lexer.Scan() {
-		if tok == lex.Keyword && text == "package" {
+		if tok == lex.Keyword && bytes.Equal(text, []byte("package")) {
 			if packageCount == 0 { // first package of file: keep accumulating until next one
 				suffixStart = -1 // this is not a package divider, so discard this run of comments and whitespace
 				packageCount++
 			} else {
 				if suffixStart == -1 {
 					suffixStart = lexer.Offset // no package comment
-				} else if source[suffixStart] == '\n' {
+				} else if data[suffixStart] == '\n' {
 					suffixStart++ // associate initial '\n' in whitespace with last line of body
 				}
-				body := source[bodyStart:suffixStart]
-				group = append(group, body)
+				body := data[bodyStart:suffixStart]
+				group = append(group, string(body))
 				groupBytes += len(body)
 				if groupBytes >= *flagSize {
 					totalBytes += groupBytes
@@ -151,8 +152,8 @@ func doSplit() {
 		}
 	}
 	// output final part
-	body := source[bodyStart:]
-	group = append(group, body)
+	body := data[bodyStart:]
+	group = append(group, string(body))
 	groupBytes += len(body)
 	totalBytes += groupBytes
 	fragment := fmt.Sprintf("%s_%06d.go", filehead, groupCount)
